@@ -4,18 +4,18 @@
 
 class sandSpace {
     private:
-        Color hueToColor(int);
-        int fallPath(int, int, int);
+        Color hueToColor(short);
+        short fallPath(short, short, short);
 
     public:
         sandSpace();
-        int numRows, numCols;
+        short numRows, numCols;
         void initialize();
         void draw();
         void update();
-        int grid[200][320];
-        int velocity[200][320];
-        int cellSize;
+        short grid[200][320];
+        short velocity[200][320];
+        short cellSize;
 };
 
 sandSpace::sandSpace() {
@@ -26,15 +26,15 @@ sandSpace::sandSpace() {
 }
 
 void sandSpace::initialize() {
-    for (int r = 0; r < numRows; r++) {
-        for (int c = 0; c < numCols; c++) {
+    for (short r = 0; r < numRows; r++) {
+        for (short c = 0; c < numCols; c++) {
             grid[r][c] = 0;
             velocity[r][c] = 1;
         }
     }
 }
 
-Color sandSpace::hueToColor(int hue) {
+Color sandSpace::hueToColor(short hue) {
     if (hue == 0) return {0,0,0,255};
     else if (hue == 1) return {255,255,255,255};
 
@@ -65,19 +65,24 @@ void sandSpace::draw() {
     }
 }
 
-int sandSpace::fallPath(int f, int r, int c) {
-    for (int i = 1; i <= f; i++)
+short sandSpace::fallPath(short f, short r, short c) {
+    for (short i = 1; i <= f; i++)
         if (grid[r + i][c] != 0) return i - 1;
     return f;
 }
 
 void sandSpace::update() {
-    for (int r = numRows - 2; r >= 0; r--) {
-        for (int c = 0; c < numCols; c++) {
+    for (short r = numRows - 2; r >= 0; r--) {
+
+        short start, end, step; // alternate loop order to prevent right lean
+        if (r % 2) { start = 0; end = numCols; step = 1; }
+        else { start = numCols - 1; end = -1; step = -1; }
+
+        for (short c = start; c != end; c += step) {
             if (grid[r][c] <= 1) continue;
 
             if (grid[r + 1][c] == 0) {
-                int fall = r + std::max(1, fallPath(velocity[r][c], r, c) - GetRandomValue(0, 3));
+                short fall = r + std::max(1, fallPath(velocity[r][c], r, c) - GetRandomValue(0, 3));
                 grid[fall][c] = grid[r][c];
                 grid[r][c] = 0;
                 velocity[fall][c] = velocity[r][c] + 1;
@@ -90,13 +95,13 @@ void sandSpace::update() {
                 grid[r][c] = 0;
             }
 
-            else if (c > 0 && grid[r + 1][c - 1] == 0 && grid[r][c - 1] != 1) {
-                grid[r + 1][c - 1] = grid[r][c];
+            else if (c < numCols - 1 && grid[r + 1][c + 1] == 0 && grid[r][c + 1] != 1) {
+                grid[r + 1][c + 1] = grid[r][c];
                 grid[r][c] = 0;
             }
 
-            else if (c < numCols - 1 && grid[r + 1][c + 1] == 0 && grid[r][c + 1] != 1) {
-                grid[r + 1][c + 1] = grid[r][c];
+            else if (c > 0 && grid[r + 1][c - 1] == 0 && grid[r][c - 1] != 1) {
+                grid[r + 1][c - 1] = grid[r][c];
                 grid[r][c] = 0;
             }
         }
@@ -104,15 +109,15 @@ void sandSpace::update() {
 }
 
 void lmbPress(sandSpace *sand, int colorIndex) {
-    int xPos = GetMouseX() / sand->cellSize, yPos = GetMouseY() / sand->cellSize;
+    short xPos = GetMouseX() / sand->cellSize, yPos = GetMouseY() / sand->cellSize;
     static int hue = 0;
     hue = ((hue + 1) % 720) + 1;
     
     int radius = 3;
-    for (int xOff = -radius; xOff <= radius; xOff++) {
-        for (int yOff = -radius; yOff <= radius; yOff++) {
-            int x = xPos + xOff;
-            int y = yPos + yOff;
+    for (short xOff = -radius; xOff <= radius; xOff++) {
+        for (short yOff = -radius; yOff <= radius; yOff++) {
+            short x = xPos + xOff;
+            short y = yPos + yOff;
             if (x < 0 || x >= sand->numCols) continue;
             if (y < 0 || y >= sand->numRows) continue;
 
@@ -125,9 +130,9 @@ void lmbPress(sandSpace *sand, int colorIndex) {
 }
 
 void rmbPress(sandSpace *sand) {
-    static int prevX = -1, prevY = -1;
-    int xPos = GetMouseX() / sand->cellSize;
-    int yPos = GetMouseY() / sand->cellSize;
+    static short prevX = -1, prevY = -1;
+    short xPos = GetMouseX() / sand->cellSize;
+    short yPos = GetMouseY() / sand->cellSize;
 
     if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) {
         prevX = xPos;
@@ -136,17 +141,17 @@ void rmbPress(sandSpace *sand) {
 
     if (IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) {
         if (prevX != -1 && prevY != -1) {
-            int dx = abs(xPos - prevX), dy = abs(yPos - prevY);
-            int sx = (prevX < xPos) ? 1 : -1;
-            int sy = (prevY < yPos) ? 1 : -1;
-            int err = dx - dy;
+            short dx = abs(xPos - prevX), dy = abs(yPos - prevY);
+            short sx = (prevX < xPos) ? 1 : -1;
+            short sy = (prevY < yPos) ? 1 : -1;
+            short err = dx - dy;
 
             while (true) { // bresenham's line algorithm
                 if (prevY < sand->numRows && prevX < sand -> numCols && prevY >= 0 && prevX >= 0)
                     sand->grid[prevY][prevX] = 1;
                 if (prevX == xPos && prevY == yPos) break;
 
-                int e2 = 2 * err;
+                short e2 = 2 * err;
                 if (e2 > -dy) { err -= dy; prevX += sx; }
                 if (e2 < dx) { err += dx; prevY += sy; }
             }
@@ -158,7 +163,7 @@ void rmbPress(sandSpace *sand) {
 }
 
 int main() {
-    const int screenWidth = 1280, screenHeight = 800;
+    const short screenWidth = 1280, screenHeight = 800;
     const Color bgColor = {0, 0, 0, 255};
 
     InitWindow(screenWidth, screenHeight, "Falling Sand Simulator: Left Click; Place Sand, Right Click; Place Barrier, Space; Reset Canvas");
